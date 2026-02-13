@@ -473,6 +473,26 @@
 
     music.currentTime = 4;
 
+    // Track video ready + minimum time
+    let videoReady = false;
+    let timerReady = false;
+
+    function openCurtains() {
+      if (videoReady && timerReady) {
+        document.getElementById('curtain-l').classList.add('open');
+        document.getElementById('curtain-r').classList.add('open');
+      }
+    }
+
+    // Video is ready when it has enough data to play
+    video.addEventListener('canplaythrough', () => {
+      videoReady = true;
+      openCurtains();
+    });
+
+    // If already buffered (cached)
+    if (video.readyState >= 4) videoReady = true;
+
     intro.addEventListener('click', () => {
       music.play().catch(() => {});
       video.playbackRate = 2;
@@ -484,10 +504,10 @@
         document.querySelector('.card').classList.add('visible');
       }, 200);
 
-      // Open curtains AFTER card has risen (0.2s + 7s)
+      // Minimum delay before curtains can open
       setTimeout(() => {
-        document.getElementById('curtain-l').classList.add('open');
-        document.getElementById('curtain-r').classList.add('open');
+        timerReady = true;
+        openCurtains();
       }, 2200);
     });
 
