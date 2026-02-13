@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>For You</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400;500;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Montserrat', sans-serif;
+      background: #000;
+    }
+
+    /* ── Background Video ── */
+    #bg-video {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    /* ── Video curtains ── */
+    .curtain-left,
+    .curtain-right {
+      position: fixed;
+      top: 0;
+      width: 50.5%;
+      height: 100%;
+      z-index: 1;
+      transition: transform 2.5s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    .curtain-left {
+      left: 0;
+      background: #1a0e05;
+    }
+
+    .curtain-right {
+      right: 0;
+      background: #1a0e05;
+    }
+
+    .curtain-left.open { transform: translateX(-100%); }
+    .curtain-right.open { transform: translateX(100%); }
+
+    /* ── Vignette Overlay — over the video ── */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 30%,
+        rgba(0, 0, 0, 0.5) 65%,
+        rgba(0, 0, 0, 0.85) 90%,
+        rgba(0, 0, 0, 0.95) 100%
+      );
+    }
+
+    /* ── Dim layer so text is readable ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background: rgba(0, 0, 0, 0.25);
+      pointer-events: none;
+    }
+
+    /* ── Floating hearts ── */
+    .hearts-container {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .heart {
+      position: absolute;
+      bottom: -60px;
+      font-size: 20px;
+      opacity: 0;
+      animation: floatHeart linear infinite;
+    }
+
+    @keyframes floatHeart {
+      0% {
+        transform: translateY(0) rotate(0deg) scale(1);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.6;
+      }
+      90% {
+        opacity: 0.4;
+      }
+      100% {
+        transform: translateY(-110vh) rotate(360deg) scale(0.5);
+        opacity: 0;
+      }
+    }
+
+    /* ── Main wrapper ── */
+    .main {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      width: 420px;
+      max-width: 90vw;
+      padding: 48px 36px 40px;
+      border-radius: 24px;
+      text-align: center;
+      color: #fff;
+
+      /* gradient background — Naruto colors */
+      background: linear-gradient(
+        135deg,
+        rgba(230, 100, 20, 0.75) 0%,
+        rgba(200, 60, 10, 0.70) 40%,
+        rgba(30, 30, 30, 0.80) 100%
+      );
+      backdrop-filter: blur(18px) saturate(1.4);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4);
+      border: 1px solid rgba(255, 160, 50, 0.25);
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.45),
+        inset 0 0 80px rgba(255, 120, 20, 0.05);
+
+      /* hidden by default, revealed after intro */
+      opacity: 0;
+      transform: translateY(300px) scale(0.95);
+    }
+
+    .card.visible {
+      animation: cardRise 7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes cardRise {
+      0% {
+        opacity: 0;
+        transform: translateY(300px) scale(0.95);
+      }
+      40% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* subtle shimmer on the card border */
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 25px;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 140, 0, 0.35),
+        transparent 40%,
+        transparent 60%,
+        rgba(200, 50, 10, 0.3)
+      );
+      z-index: -1;
+      animation: shimmer 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes shimmer {
+      0%   { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    /* ── Icon / GIF ── */
+    .card-icon {
+      margin-bottom: 16px;
+    }
+
+    .card-icon img {
+      width: 64px;
+      height: 64px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.12); }
+    }
+
+    /* ── Title ── */
+    .card-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 30px;
+      line-height: 1.3;
+      margin-bottom: 28px;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ── Buttons row ── */
+    .buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      min-height: 60px;
+    }
+
+    .btn {
+      padding: 14px 36px;
+      border: none;
+      border-radius: 50px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 50%
+      );
+      pointer-events: none;
+    }
+
+    /* ── Yes button — Naruto orange ── */
+    .btn-yes {
+      background: linear-gradient(135deg, #ff7b00, #e86400, #ff9a2e);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(255, 120, 0, 0.45);
+      transition: box-shadow 0.3s, filter 0.3s;
+    }
+
+    .btn-yes:hover {
+      box-shadow: 0 6px 28px rgba(255, 120, 0, 0.6);
+      filter: brightness(1.08);
+    }
+
+    /* ── No button — dark/muted ── */
+    .btn-no {
+      background: linear-gradient(135deg, #2a2a2a, #3a3a3a, #444);
+      color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      transition: box-shadow 0.3s, filter 0.3s;
+    }
+
+    /* After escaping, becomes fixed and flies around */
+    .btn-no.escaped {
+      position: fixed;
+      z-index: 5;
+      transition: left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 0.3s,
+                  filter 0.3s;
+    }
+
+    .btn-no:hover {
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
+      filter: brightness(1.15);
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    /* ── Intro screen ── */
+    .intro {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(ellipse at center, #1a0a0e 0%, #000 100%);
+      cursor: pointer;
+      transition: opacity 1s ease;
+    }
+
+    .intro.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .intro-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255, 140, 0, 0.4);
+      box-shadow: 0 0 30px rgba(255, 100, 0, 0.3);
+      animation: introbeat 1.2s ease-in-out infinite;
+    }
+
+    @keyframes introbeat {
+      0%, 100% { transform: scale(1); }
+      15%      { transform: scale(1.08); }
+      30%      { transform: scale(1); }
+      45%      { transform: scale(1.05); }
+      60%      { transform: scale(1); }
+    }
+
+    .intro-text {
+      margin-top: 24px;
+      color: rgba(255, 255, 255, 0.5);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      letter-spacing: 1px;
+      animation: fadeIn 1s ease 0.5s both;
+    }
+
+    /* ── Result screen ── */
+    .result-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(230,100,20,0.88), rgba(30,30,30,0.90));
+      backdrop-filter: blur(20px);
+      color: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    .result-screen.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .result-screen img {
+      max-width: 320px;
+      max-height: 60vh;
+      object-fit: contain;
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .result-close {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+    }
+
+    .result-close:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Video -->
+  <video id="bg-video" autoplay muted loop playsinline>
+    <source src="background.mp4" type="video/mp4">
+  </video>
+
+  <!-- Background Music -->
+  <audio id="bg-music" autoplay loop preload="auto">
+    <source src="background.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Intro screen -->
+  <div class="intro" id="intro">
+    <img class="intro-img" src="naruto.jpg" alt="naruto">
+    <div class="intro-text">tap to open</div>
+  </div>
+
+  <!-- Video curtains (open after card rises) -->
+  <div class="curtain-left" id="curtain-l"></div>
+  <div class="curtain-right" id="curtain-r"></div>
+
+  <!-- Vignette + overlay -->
+  <div class="vignette"></div>
+  <div class="overlay"></div>
+
+  <!-- Floating hearts -->
+  <div class="hearts-container" id="hearts"></div>
+
+  <!-- Main card -->
+  <div class="main">
+    <div class="card">
+      <div class="card-icon"><img src="heart.gif" alt="heart"></div>
+      <div class="card-title">Will you be my Valentine?</div>
+      <div class="buttons">
+        <button class="btn btn-yes" id="btn-yes">Yes! 🧡</button>
+        <button class="btn btn-no" id="btn-no">No</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result screen (shown on "Yes") -->
+  <div class="result-screen" id="result">
+    <button class="result-close" id="result-close">✕</button>
+    <img src="images.png" alt="love">
+  </div>
+
+  <script>
+    // ── Floating hearts ──
+    const heartsContainer = document.getElementById('hearts');
+    const heartSymbols = ['✦', '★', '⚡', '✧', '◆', '✶', '♦', '●'];
+
+    function spawnHeart() {
+      const el = document.createElement('span');
+      el.classList.add('heart');
+      el.textContent = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.fontSize = (14 + Math.random() * 18) + 'px';
+      el.style.animationDuration = (6 + Math.random() * 8) + 's';
+      el.style.animationDelay = (Math.random() * 2) + 's';
+      const colors = ['#ff8c00', '#ff6a00', '#ffb347', '#c84000', '#ff4500', '#e8e8e8'];
+      el.style.color = colors[Math.floor(Math.random() * colors.length)];
+      heartsContainer.appendChild(el);
+      setTimeout(() => el.remove(), 16000);
+    }
+
+    setInterval(spawnHeart, 700);
+    for (let i = 0; i < 8; i++) setTimeout(spawnHeart, i * 200);
+
+    // ── Sound — starts on intro click from 4th second ──
+    const music = document.getElementById('bg-music');
+    const video = document.getElementById('bg-video');
+    const intro = document.getElementById('intro');
+
+    music.currentTime = 4;
+
+    intro.addEventListener('click', () => {
+      music.play().catch(() => {});
+      video.playbackRate = 2;
+      video.play().catch(() => {});
+      intro.classList.add('hidden');
+
+      // Start card rising animation after 0.2s (7s duration)
+      setTimeout(() => {
+        document.querySelector('.card').classList.add('visible');
+      }, 200);
+
+      // Open curtains AFTER card has risen (0.2s + 7s)
+      setTimeout(() => {
+        document.getElementById('curtain-l').classList.add('open');
+        document.getElementById('curtain-r').classList.add('open');
+      }, 2200);
+    });
+
+    // ── Buttons ──
+    const btnNo = document.getElementById('btn-no');
+    const btnYes = document.getElementById('btn-yes');
+    let yesScale = 1;
+    let noScale = 1;
+    let escapeCount = 0;
+
+    function escapeNo() {
+      escapeCount++;
+
+      if (!btnNo.classList.contains('escaped')) {
+        const rect = btnNo.getBoundingClientRect();
+        btnNo.classList.add('escaped');
+        document.body.appendChild(btnNo);
+        btnNo.style.left = rect.left + 'px';
+        btnNo.style.top = rect.top + 'px';
+        btnNo.offsetHeight; // force reflow
+      }
+
+      // Fly to random spot on screen
+      const pad = 20;
+      const btnW = btnNo.offsetWidth;
+      const btnH = btnNo.offsetHeight;
+      const maxX = window.innerWidth - btnW - pad;
+      const maxY = window.innerHeight - btnH - pad;
+      btnNo.style.left = (pad + Math.random() * maxX) + 'px';
+      btnNo.style.top = (pad + Math.random() * maxY) + 'px';
+
+      // Shrink No button
+      noScale = Math.max(noScale - 0.07, 0.3);
+      btnNo.style.transform = `scale(${noScale})`;
+
+      // Grow Yes button
+      yesScale = Math.min(yesScale + 0.12, 2.2);
+      btnYes.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      btnYes.style.transform = `scale(${yesScale})`;
+    }
+
+    btnNo.addEventListener('mouseenter', escapeNo);
+    btnNo.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      escapeNo();
+    }, { passive: false });
+    btnNo.addEventListener('click', escapeNo);
+
+    // ── "Yes" button ──
+    const resultScreen = document.getElementById('result');
+
+    btnYes.addEventListener('click', () => {
+      resultScreen.classList.add('visible');
+      btnNo.style.display = 'none';
+
+      for (let i = 0; i < 30; i++) {
+        setTimeout(spawnHeart, i * 80);
+      }
+    });
+
+    // ── Close result → back to card ──
+    document.getElementById('result-close').addEventListener('click', () => {
+      resultScreen.classList.remove('visible');
+    });
+  </script>
+</body>
+</html>
